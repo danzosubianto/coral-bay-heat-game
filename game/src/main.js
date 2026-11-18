@@ -401,9 +401,9 @@ function step(dt) {
     menuKeys(game.hasSave ? 2 : 1, activateTitle);
     idleWorld(dt);
     // A slow drift over the marina while the title hangs.
-    game.camera.x = 980 + Math.sin(game.time * 0.05) * 130;
+    game.camera.x = 905 + Math.sin(game.time * 0.05) * 130;
     game.camera.y = 1120 + Math.cos(game.time * 0.037) * 70;
-    if (game.shotMode) { game.camera.x = 980; game.camera.y = 1120; }
+    if (game.shotMode) { game.camera.x = 905; game.camera.y = 1120; }
     return;
   }
   if (game.mode === 'pause') {
@@ -438,6 +438,10 @@ function step(dt) {
       if (car !== game.player.car) updateTraffic(game.city, car, game.cars, dt, game.liveRng);
     }
     if (car.health < 42 && !car.wrecked && Math.random() < dt * 6) fx.smoke(car.x, car.y - 8, 1);
+    if (car === game.player.car && Math.abs(car.speed) > 30 && Math.random() < dt * 5) {
+      // Exhaust breathing out of the tailpipe as she pulls away.
+      fx.smoke(car.x - Math.cos(car.angle) * car.model.length * 0.55, car.y - Math.sin(car.angle) * car.model.length * 0.55, 1);
+    }
   }
   updatePeds(game.city, game.peds, dt, game.liveRng);
 

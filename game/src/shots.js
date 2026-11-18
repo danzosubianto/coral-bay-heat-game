@@ -21,11 +21,13 @@ export function stageShot(game, name) {
   else stageTitle(game);
 }
 
-/** The cover's promise: a chase at dusk, three stars, nowhere clean to run. */
+/** The cover's promise: a chase at dusk, four stars, a roadblock ahead. */
 function stageChase(game) {
   game.mode = 'play';
-  game.hour = 18.7;
+  game.hour = 19.35;
   game.cash = 1240;
+  game.startJob(); // First Wheels on the panel: a job to finish if she lands
+  game.brief = null; // the brief box would sit on the chase; the panel tells it
   const { player, police } = game;
   // Mari in a borrowed Voyager, northbound on Harbor Ave at speed, mid-block
   // with open road ahead of her and the law stacked up behind.
@@ -39,7 +41,8 @@ function stageChase(game) {
   player.y = car.y;
   player.angle = car.angle;
   // Three cruisers on her tail, close enough to read the plate.
-  police.stars = 3;
+  police.stars = 4;
+  police.blockCooldown = 30; // the staged roadblock below is the one she faces
   const spots = [
     { x: 1960 - 23, y: 1895, a: -Math.PI / 2 },
     { x: 1960 + 23, y: 1985, a: -Math.PI / 2 },
@@ -56,6 +59,16 @@ function stageChase(game) {
     cop.speed = 315;
     game.cars.push(cop);
     police.cruisers.push(cop);
+  }
+  // And the fourth star's answer: two cruisers parked across Harbor Ave on
+  // the far side of the Palmetto St crossing, square in her headlights —
+  // far enough ahead that the shot catches the moment before the meeting.
+  for (const side of [-1, 1]) {
+    const block = makeCar(CRUISER, 1960 + side * 27, 1470, side > 0 ? 0.16 : Math.PI - 0.16, CRUISER.paints[0], 'cruiser');
+    block.roadblock = true;
+    block.driver = false;
+    game.cars.push(block);
+    police.cruisers.push(block);
   }
   // Rubber on the road behind her, and a story job waiting once she lands.
   for (let i = 0; i < 26; i += 1) {
@@ -133,6 +146,6 @@ function stageTitle(game) {
   game.mode = 'title';
   game.hour = 17.9;
   game.menuIndex = 0;
-  game.camera.x = 980;
+  game.camera.x = 905;
   game.camera.y = 1120;
 }
