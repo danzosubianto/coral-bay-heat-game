@@ -1,10 +1,12 @@
 // The work of Coral Bay: a five-job story chain for Marlin Doss, then an
-// endless board of the same trades at rising pay. A job is a small state
-// machine — reach a place, take a car, beat a clock, run fares, wreck rivals
-// — and this module owns the machines: starting them, stepping them, paying
-// them, and failing them when the clock runs out. The HUD asks the active
-// job for its objective text and its marker; main.js asks whether the player
-// is standing in the garage marker to start the next one.
+// endless board of the same trades at rising pay — plus two board-only
+// extras, a lift for a stranded contact and a run-down of a cruising Viper.
+// A job is a small state machine — reach a place, take a car, beat a clock,
+// run fares, wreck rivals — and this module owns the machines: starting
+// them, stepping them, paying them, and failing them when the clock runs
+// out. The HUD asks the active job for its objective text and its marker;
+// main.js asks whether the player is standing in the garage marker to start
+// the next one.
 
 import { CAR_MODELS, STREETS_Y, AVENUES_X } from './config.js';
 import { landmarkById } from './city.js';
@@ -225,12 +227,79 @@ function jobWreckingCrew(game) {
   return job;
 }
 
+/** Board extra: a contact needs a lift across town, and pays cash in hand. */
+function jobLift(game) {
+  const spots = ['hotel', 'mall', 'diner', 'marina', 'cabdepot'];
+  const from = landmarkById(spots[Math.floor(game.rng() * spots.length)]);
+  let to = landmarkById(spots[Math.floor(game.rng() * spots.length)]);
+  if (to.id === from.id) to = landmarkById('garage');
+  const job = baseJob('Board: A Lift for a Friend', 300, [
+    'Marlin: "A friend of mine is stranded and the buses',
+    'are a rumour. Pick them up, drop them off, be nice."',
+  ]);
+  let contact = null;
+  let stage = 'pickup'; // pickup | dropoff
+  job.update = (g) => {
+    if (!contact) {
+      contact = g.nearestWaitingPed();
+      if (!contact) return null;
+      contact.mode = 'hail';
+      contact.x = from.x + 14;
+      contact.y = from.y + 12;
+      job.marker = { x: contact.x, y: contact.y, label: `Pick up ${contact.name}` };
+      job.objective = `Pick up ${contact.name} at ${from.short}`;
+    }
+    if (stage === 'pickup') {
+      if (contact.mode === 'down') { contact = null; return null; }
+      job.marker = { x: contact.x, y: contact.y, label: `Pick up ${contact.name}` };
+      if (g.player.car && Math.abs(g.player.car.speed) < 14 && reach(g, contact.x, contact.y, 46)) {
+        contact.mode = 'aboard';
+        job.marker = { x: to.x, y: to.y, label: `Drop at ${to.short}` };
+        job.objective = `Take ${contact.name} to ${to.short}`;
+        stage = 'dropoff';
+      }
+    } else if (g.player.car && reach(g, to.x, to.y, 56)) {
+      contact.mode = 'walk';
+      contact.x = to.x + 16;
+      contact.y = to.y + 10;
+      const bonus = Math.round(Math.hypot(to.x - from.x, to.y - from.y) / 14);
+      job.pay += bonus;
+      return 'done';
+    }
+    return null;
+  };
+  return job;
+}
+
+/** Board extra: a Viper driver is cruising. Run him down and wreck the ride. */
+function jobRunDown(game) {
+  const den = landmarkById('vipers');
+  const job = baseJob('Board: Run It Down', 950, [
+    'Marlin: "One of the Vipers is out cruising, showing',
+    'the flag. Take the shine off him — wreck the ride."',
+  ]);
+  job.timeLeft = 170;
+  const car = makeCar(VOYAGER, den.x - 320, 1920, 0, '#386641', 'traffic');
+  car.jobOwned = true;
+  car.health = 55; // a working car, but not a tank: a few honest hits tell
+  placeOnRoad(car, false, 4, 1, den.x - 320);
+  game.cars.push(car);
+  job.targets = [car];
+  job.marker = { x: car.x, y: car.y, label: 'Wreck the Viper driver' };
+  job.objective = 'Run down the Viper driver and wreck his ride';
+  job.update = () => {
+    job.marker = { x: car.x, y: car.y, label: 'Wreck the Viper driver' };
+    return car.wrecked ? 'done' : null;
+  };
+  return job;
+}
+
 export const STORY_JOBS = [jobFirstWheels, jobHotPackage, jobGateCrasher, jobCabConfidential, jobWreckingCrew];
 export const STORY_COUNT = STORY_JOBS.length;
 
 /** After the story: the board. Same trades, new corners, rising pay. */
 export function makeBoardJob(game) {
-  const kinds = ['deliver', 'package', 'gates', 'fares', 'wreck'];
+  const kinds = ['deliver', 'package', 'gates', 'fares', 'wreck', 'lift', 'chase'];
   const kind = kinds[Math.floor(game.rng() * kinds.length)];
   const scale = 1 + game.boardDone * 0.07;
   let job;
@@ -282,6 +351,12 @@ export function makeBoardJob(game) {
     job.title = 'Board: Cab Shift';
     job.pay = Math.round(220 * scale);
     job.faresTotal = 2;
+  } else if (kind === 'lift') {
+    job = jobLift(game);
+    job.pay = Math.round(job.pay * scale);
+  } else if (kind === 'chase') {
+    job = jobRunDown(game);
+    job.pay = Math.round(job.pay * scale);
   } else {
     job = jobWreckingCrew(game);
     job.title = 'Board: Demolition';
