@@ -29,9 +29,11 @@ function stageChase(game) {
   game.startJob(); // First Wheels on the panel: a job to finish if she lands
   game.brief = null; // the brief box would sit on the chase; the panel tells it
   const { player, police } = game;
-  // Mari in a borrowed Voyager, northbound on Harbor Ave at speed, mid-block
-  // with open road ahead of her and the law stacked up behind.
-  const car = makeCar(VOYAGER, 1960 - 23, 1760, -Math.PI / 2, '#5b6abf', 'player');
+  // Mari in a borrowed Voyager, northbound on Harbor Ave at speed, with a
+  // long block ahead of her and the law stacked up behind. (She starts far
+  // enough back that the short staged run cannot end in the roadblock: the
+  // shot is the moment before the meeting, not the meeting.)
+  const car = makeCar(VOYAGER, 1960 - 23, 1990, -Math.PI / 2, '#5b6abf', 'player');
   car.speed = 335;
   car.driver = false;
   game.cars.push(car);
@@ -44,9 +46,9 @@ function stageChase(game) {
   police.stars = 4;
   police.blockCooldown = 30; // the staged roadblock below is the one she faces
   const spots = [
-    { x: 1960 - 23, y: 1895, a: -Math.PI / 2 },
-    { x: 1960 + 23, y: 1985, a: -Math.PI / 2 },
-    { x: 1960 - 20, y: 2075, a: -Math.PI / 2 },
+    { x: 1960 - 23, y: 2125, a: -Math.PI / 2 },
+    { x: 1960 + 23, y: 2215, a: -Math.PI / 2 },
+    { x: 1960 - 20, y: 2305, a: -Math.PI / 2 },
   ];
   for (const s of spots) {
     const cop = makeCar(CRUISER, s.x, s.y, s.a, CRUISER.paints[0], 'cruiser');
@@ -72,8 +74,8 @@ function stageChase(game) {
   }
   // Rubber on the road behind her, and a story job waiting once she lands.
   for (let i = 0; i < 26; i += 1) {
-    game.skids.push({ x: 1960 - 30 + (i % 3) * 4, y: 1820 + i * 9, life: 12 });
-    game.skids.push({ x: 1960 - 12 + (i % 3) * 4, y: 1820 + i * 9, life: 12 });
+    game.skids.push({ x: 1960 - 30 + (i % 3) * 4, y: 2050 + i * 9, life: 12 });
+    game.skids.push({ x: 1960 - 12 + (i % 3) * 4, y: 2050 + i * 9, life: 12 });
   }
   game.camera.x = car.x + 40;
   game.camera.y = car.y + 120;

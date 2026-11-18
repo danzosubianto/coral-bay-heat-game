@@ -9,7 +9,7 @@
 // Run it the way the grader does, or locally with an output override:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -44,6 +44,14 @@ const shotNames = existsSync(join(repoRoot, 'screenshots'))
 if (shotNames.length < 3 || shotNames.length > 4) {
   throw new Error(`screenshots/ must hold 3 or 4 images, found ${shotNames.length}`);
 }
+// The gate also refuses a screenshot past 256 KiB; catch it here, where the
+// fix (re-shoot at a lower quality) is still cheap.
+for (const name of shotNames) {
+  const bytes = statSync(join(repoRoot, 'screenshots', name)).size;
+  if (bytes > DOSSIER_CAPS.screenshots.max_bytes) {
+    throw new Error(`screenshots/${name} is ${bytes} bytes, over the 256 KiB cap`);
+  }
+}
 
 mkdirSync(outputDir, { recursive: true });
 copyTree(gameDir, join(outputDir, 'game'));
@@ -57,5 +65,23 @@ if (existsSync(join(repoRoot, 'screenshots'))) {
 const dossierText = buildDossier(outputDir, DOSSIER_CAPS);
 writeFileSync(join(outputDir, 'dossier.json'), dossierText);
 
+function treeStats(dir) {
+  let files = 0;
+  let bytes = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const sub = treeStats(path);
+      files += sub.files;
+      bytes += sub.bytes;
+    } else {
+      files += 1;
+      bytes += statSync(path).size;
+    }
+  }
+  return { files, bytes };
+}
+
 const shotCount = readdirSync(shotsDir).length;
-console.log(`Coral Bay Heat handed in: ${shotCount} screenshots, dossier ${dossierText.length} bytes -> ${outputDir}`);
+const gameStats = treeStats(join(outputDir, 'game'));
+console.log(`Coral Bay Heat handed in: ${shotCount} screenshots, game ${gameStats.files} files / ${gameStats.bytes} bytes, dossier ${dossierText.length} bytes -> ${outputDir}`);
