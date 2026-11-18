@@ -88,7 +88,33 @@ export function buildCity(seed) {
   }
   const pier = { x: 210, y: 1092, w: 250, h: 56 };
 
-  return { buildings, parks, lots, palms, pier, rng };
+  // The bay's own traffic and the beach's furniture, placed after every
+  // other draw from the rng so the streets above never move: boats moored
+  // off the marina and out at anchor, umbrellas and towels along the sand.
+  const boats = [];
+  for (let i = 0; i < 9; i += 1) {
+    const moored = i < 5;
+    boats.push({
+      x: moored ? 120 + rng() * 210 : 40 + rng() * 300,
+      y: moored ? 950 + rng() * 330 : 200 + rng() * (WORLD.height - 400),
+      angle: rng() * Math.PI * 2,
+      size: 0.8 + rng() * 0.7,
+      paint: ['#f4f1e8', '#e8907c', '#8fc1d4', '#ffd166'][Math.floor(rng() * 4)],
+      phase: rng() * Math.PI * 2,
+    });
+  }
+  const umbrellas = [];
+  for (let y = 260; y < WORLD.height - 200; y += 150 + rng() * 130) {
+    if (Math.abs(y - 1120) < 90) continue; // keep the marina's shore clear
+    umbrellas.push({
+      x: 452 + rng() * 62,
+      y,
+      paint: ['#ef476f', '#ffd166', '#06d6a0', '#118ab2', '#f78c6b'][Math.floor(rng() * 5)],
+      tilt: rng() * 0.5 - 0.25,
+    });
+  }
+
+  return { buildings, parks, lots, palms, pier, boats, umbrellas, rng };
 }
 
 /** Every solid rectangle a body can bump into: buildings and the pier. */

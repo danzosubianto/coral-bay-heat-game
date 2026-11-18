@@ -46,8 +46,13 @@ export function drawWorld(ctx, game, view) {
   const x1 = cam.x + view.w / 2 + 60;
   const y1 = cam.y + view.h / 2 + 60;
 
-  // The bay: layered blue with slow wave glints.
-  ctx.fillStyle = '#2b7ea6';
+  // The bay: deep blue out at the horizon line, paling toward the shore,
+  // with slow wave glints drifting across it.
+  const sea = ctx.createLinearGradient(x0, 0, WORLD.waterEdge, 0);
+  sea.addColorStop(0, '#1d6186');
+  sea.addColorStop(0.75, '#2b7ea6');
+  sea.addColorStop(1, '#3f97b8');
+  ctx.fillStyle = sea;
   ctx.fillRect(x0, y0, WORLD.waterEdge - x0 + 4, y1 - y0);
   ctx.strokeStyle = 'rgba(255,255,255,0.20)';
   ctx.lineWidth = 2;
@@ -61,6 +66,16 @@ export function drawWorld(ctx, game, view) {
     }
     ctx.stroke();
   }
+  // Foam worrying at the shoreline, always on the move.
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let fy = y0; fy < y1; fy += 26) {
+    const fx = WORLD.waterEdge - 3 + Math.sin(fy * 0.05 + time * 1.6) * 4;
+    if (fy === y0) ctx.moveTo(fx, fy);
+    else ctx.lineTo(fx, fy);
+  }
+  ctx.stroke();
   // The pier.
   ctx.fillStyle = '#8a6f4d';
   ctx.fillRect(city.pier.x, city.pier.y, city.pier.w, city.pier.h);
@@ -68,18 +83,42 @@ export function drawWorld(ctx, game, view) {
   for (let px = city.pier.x + 14; px < city.pier.x + city.pier.w; px += 28) {
     ctx.fillRect(px, city.pier.y, 3, city.pier.h);
   }
+  for (const boat of city.boats) drawBoat(ctx, boat, time);
 
-  // Sand, then the city's pale ground.
+  // Sand, its boardwalk, then the city's pale ground.
   ctx.fillStyle = '#eed9a4';
   ctx.fillRect(WORLD.waterEdge, y0, WORLD.beachEdge - WORLD.waterEdge, y1 - y0);
+  ctx.fillStyle = '#c8a878';
+  ctx.fillRect(WORLD.beachEdge - 26, y0, 26, y1 - y0);
+  ctx.fillStyle = 'rgba(90, 64, 36, 0.35)';
+  for (let by = Math.floor(y0 / 18) * 18; by < y1; by += 18) {
+    ctx.fillRect(WORLD.beachEdge - 26, by, 26, 2);
+  }
+  for (const umb of city.umbrellas) {
+    if (umb.y < y0 - 20 || umb.y > y1 + 20) continue;
+    drawUmbrella(ctx, umb);
+  }
   ctx.fillStyle = '#c9bb9c';
   ctx.fillRect(WORLD.beachEdge, y0, x1 - WORLD.beachEdge, y1 - y0);
 
-  // Parks: green insets.
-  ctx.fillStyle = '#79a95c';
+  // Parks: green insets with a sandy path cross and benches under the palms.
   for (const park of city.parks) {
     if (park.x > x1 || park.x + park.w < x0 || park.y > y1 || park.y + park.h < y0) continue;
+    ctx.fillStyle = '#79a95c';
     ctx.fillRect(park.x, park.y, park.w, park.h);
+    ctx.strokeStyle = 'rgba(46, 84, 38, 0.5)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(park.x + 2, park.y + 2, park.w - 4, park.h - 4);
+    ctx.fillStyle = '#d9c48f';
+    ctx.fillRect(park.x, park.y + park.h / 2 - 7, park.w, 14);
+    ctx.fillRect(park.x + park.w / 2 - 7, park.y, 14, park.h);
+    ctx.fillStyle = '#7a5c3e';
+    const benches = 2 + Math.floor((park.x + park.y) % 3);
+    for (let i = 0; i < benches; i += 1) {
+      const bx = park.x + 22 + ((i * 97) % Math.max(30, park.w - 60));
+      const by = park.y + park.h / 2 + (i % 2 ? 14 : -22);
+      ctx.fillRect(bx, by, 20, 5);
+    }
   }
   // Car parks: asphalt with bay lines.
   for (const lot of city.lots) {
@@ -100,6 +139,7 @@ export function drawWorld(ctx, game, view) {
     if (palm.x < x0 || palm.x > x1 || palm.y < y0 || palm.y > y1) continue;
     drawPalm(ctx, palm);
   }
+  drawGulls(ctx, game, x0, y0, x1, y1);
   drawLandmarkSigns(ctx, game, x0, y0, x1, y1);
 }
 
@@ -184,6 +224,57 @@ function drawBuildings(ctx, game, x0, y0, x1, y1) {
         ctx.fillRect(wx, wy, 12, 9);
       }
     }
+    drawRoofDressing(ctx, b);
+  }
+}
+
+/** The life on top of a building: parapet, air-con boxes, vents, a tank. */
+function drawRoofDressing(ctx, b) {
+  // A pale parapet lip just inside the roof's edge.
+  ctx.strokeStyle = 'rgba(255, 250, 235, 0.4)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(b.x + 12, b.y + 12, b.w - 24, b.h - 24);
+  const rng = makeRng(b.seed * 3 + 7);
+  const props = 1 + Math.floor(rng() * 3);
+  for (let i = 0; i < props; i += 1) {
+    const pw = 14 + rng() * 20;
+    const ph = 11 + rng() * 14;
+    const px = b.x + 18 + rng() * Math.max(10, b.w - 36 - pw);
+    const py = b.y + 18 + rng() * Math.max(10, b.h - 36 - ph);
+    ctx.fillStyle = 'rgba(20, 16, 10, 0.18)';
+    ctx.fillRect(px + 3, py + 4, pw, ph);
+    ctx.fillStyle = i % 2 ? '#9aa3ab' : '#7d7468';
+    ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(px, py, pw, 3);
+  }
+  if (b.floors >= 6 && b.w > 130) {
+    // A water tank on the tall ones, Coral Bay's skyline signature.
+    const tx = b.x + b.w - 52;
+    const ty = b.y + 20;
+    ctx.fillStyle = 'rgba(20, 16, 10, 0.2)';
+    ctx.fillRect(tx + 4, ty + 6, 30, 26);
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(tx, ty, 30, 26);
+    ctx.beginPath();
+    ctx.moveTo(tx - 3, ty);
+    ctx.lineTo(tx + 15, ty - 11);
+    ctx.lineTo(tx + 33, ty);
+    ctx.closePath();
+    ctx.fillStyle = '#6d4c41';
+    ctx.fill();
+  }
+  if (rng() < 0.55) {
+    // A shopfront awning on the street side, striped in the wall's accent.
+    const aw = Math.min(b.w - 30, 90 + rng() * 80);
+    const ax = b.x + 15 + rng() * Math.max(4, b.w - 30 - aw);
+    const ay = b.y + b.h - 13;
+    for (let s = 0; s < 6; s += 1) {
+      ctx.fillStyle = s % 2 ? '#f4f1e8' : '#d95548';
+      ctx.fillRect(ax + (aw / 6) * s, ay, aw / 6, 9);
+    }
+    ctx.fillStyle = 'rgba(20,16,10,0.25)';
+    ctx.fillRect(ax, ay + 9, aw, 3);
   }
 }
 
@@ -212,6 +303,90 @@ function drawPalm(ctx, palm) {
   ctx.beginPath();
   ctx.ellipse(palm.x, palm.y + 3, 10, 4, 0, 0, Math.PI * 2);
   ctx.fill();
+}
+
+/** A moored boat, bobbing on the bay: hull, cabin, mast, and its wake-ring. */
+function drawBoat(ctx, boat, time) {
+  const bob = Math.sin(time * 0.9 + boat.phase) * 2.2;
+  ctx.save();
+  ctx.translate(boat.x, boat.y + bob);
+  ctx.rotate(boat.angle + Math.sin(time * 0.5 + boat.phase) * 0.03);
+  const s = boat.size;
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 30 * s, 13 * s, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(15, 30, 40, 0.25)';
+  ctx.beginPath();
+  ctx.ellipse(2, 3, 24 * s, 9 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = boat.paint;
+  ctx.beginPath();
+  ctx.moveTo(-22 * s, 0);
+  ctx.lineTo(-14 * s, -7 * s);
+  ctx.lineTo(14 * s, -7 * s);
+  ctx.lineTo(24 * s, 0);
+  ctx.lineTo(14 * s, 7 * s);
+  ctx.lineTo(-14 * s, 7 * s);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#f8f5ec';
+  ctx.fillRect(-6 * s, -5 * s, 13 * s, 10 * s);
+  ctx.strokeStyle = '#5a4632';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(10 * s, 0);
+  ctx.lineTo(10 * s, -17 * s);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A beach umbrella and its towel: the sand is somebody's day out. */
+function drawUmbrella(ctx, umb) {
+  ctx.save();
+  ctx.translate(umb.x, umb.y);
+  ctx.fillStyle = 'rgba(240, 120, 90, 0.55)';
+  ctx.fillRect(-13, 8, 26, 10);
+  ctx.fillStyle = 'rgba(20,16,10,0.16)';
+  ctx.beginPath();
+  ctx.ellipse(3, 4, 13, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.rotate(umb.tilt);
+  ctx.strokeStyle = '#7a5c3e';
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(0, 6);
+  ctx.lineTo(0, -6);
+  ctx.stroke();
+  ctx.fillStyle = umb.paint;
+  ctx.beginPath();
+  ctx.moveTo(-15, -4);
+  ctx.quadraticCurveTo(0, -16, 15, -4);
+  ctx.quadraticCurveTo(7, -8, 0, -4);
+  ctx.quadraticCurveTo(-7, -8, -15, -4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Gulls over the bay: two-stroke wings, circling on the sea wind. */
+function drawGulls(ctx, game, x0, y0, x1, y1) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 7; i += 1) {
+    const cx = 120 + (i % 3) * 130;
+    const cy = 300 + i * 330;
+    const gx = cx + Math.cos(game.time * 0.14 + i * 1.7) * 90;
+    const gy = cy + Math.sin(game.time * 0.19 + i * 2.3) * 46;
+    if (gx < x0 || gx > x1 || gy < y0 || gy > y1) continue;
+    const flap = Math.sin(game.time * 6 + i * 1.3) * 4;
+    ctx.beginPath();
+    ctx.moveTo(gx - 8, gy + flap);
+    ctx.quadraticCurveTo(gx - 3, gy - 3, gx, gy);
+    ctx.quadraticCurveTo(gx + 3, gy - 3, gx + 8, gy + flap);
+    ctx.stroke();
+  }
 }
 
 function drawLandmarkSigns(ctx, game, x0, y0, x1, y1) {
