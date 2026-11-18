@@ -27,9 +27,10 @@ function stageChase(game) {
   game.hour = 18.7;
   game.cash = 1240;
   const { player, police } = game;
-  // Mari in a borrowed Voyager, northbound on Harbor Ave at speed.
-  const car = makeCar(VOYAGER, 1960 - 23, 1500, -Math.PI / 2, '#5b6abf', 'player');
-  car.speed = 330;
+  // Mari in a borrowed Voyager, northbound on Harbor Ave at speed, mid-block
+  // with open road ahead of her and the law stacked up behind.
+  const car = makeCar(VOYAGER, 1960 - 23, 1760, -Math.PI / 2, '#5b6abf', 'player');
+  car.speed = 335;
   car.driver = false;
   game.cars.push(car);
   player.car = car;
@@ -40,9 +41,9 @@ function stageChase(game) {
   // Three cruisers on her tail, close enough to read the plate.
   police.stars = 3;
   const spots = [
-    { x: 1960 - 23, y: 1620, a: -Math.PI / 2 },
-    { x: 1960 + 23, y: 1705, a: -Math.PI / 2 },
-    { x: 1960 - 20, y: 1810, a: -Math.PI / 2 },
+    { x: 1960 - 23, y: 1895, a: -Math.PI / 2 },
+    { x: 1960 + 23, y: 1985, a: -Math.PI / 2 },
+    { x: 1960 - 20, y: 2075, a: -Math.PI / 2 },
   ];
   for (const s of spots) {
     const cop = makeCar(CRUISER, s.x, s.y, s.a, CRUISER.paints[0], 'cruiser');
@@ -58,8 +59,8 @@ function stageChase(game) {
   }
   // Rubber on the road behind her, and a story job waiting once she lands.
   for (let i = 0; i < 26; i += 1) {
-    game.skids.push({ x: 1960 - 30 + (i % 3) * 4, y: 1560 + i * 9, life: 12 });
-    game.skids.push({ x: 1960 - 12 + (i % 3) * 4, y: 1560 + i * 9, life: 12 });
+    game.skids.push({ x: 1960 - 30 + (i % 3) * 4, y: 1820 + i * 9, life: 12 });
+    game.skids.push({ x: 1960 - 12 + (i % 3) * 4, y: 1820 + i * 9, life: 12 });
   }
   game.camera.x = car.x + 40;
   game.camera.y = car.y + 120;
@@ -72,8 +73,8 @@ function stageAvenue(game) {
   game.cash = 250;
   game.startJob(); // First Wheels: the HUD carries the objective and marker
   const { player } = game;
-  const car = makeCar(ZEPHYR, 640 - 23, 1330, Math.PI / 2, '#fb8500', 'player');
-  car.speed = 265;
+  const car = makeCar(ZEPHYR, 640 - 23, 1440, Math.PI / 2, '#fb8500', 'player');
+  car.speed = 285;
   car.driver = false;
   game.cars.push(car);
   player.car = car;
@@ -93,8 +94,11 @@ function stageTaxi(game) {
   game.storyIndex = 3;
   const { player } = game;
   const hotel = landmarkById('hotel');
-  const cab = makeCar(CAB, 1520 + 23, 1010, Math.PI / 2, CAB.paints[0], 'cab');
-  cab.speed = 150;
+  // The cab is already at the kerb mid-block, meter running, a few metres
+  // short of Rosa: close enough to read the scene, not close enough to
+  // board her. (Mid-block, because a crossing invites the whole town in.)
+  const cab = makeCar(CAB, 1520 + 23, 1330, Math.PI / 2, CAB.paints[0], 'cab');
+  cab.speed = 0;
   cab.driver = false;
   game.cars.push(cab);
   player.car = cab;
@@ -102,12 +106,12 @@ function stageTaxi(game) {
   player.x = cab.x;
   player.y = cab.y;
   player.angle = cab.angle;
-  // The fare, kerbside and hopeful, a block ahead of the cab.
+  // The fare, kerbside and hopeful, just ahead of the cab.
   const fare = game.peds.find((p) => p.mode === 'walk');
   if (fare) {
     fare.mode = 'hail';
     fare.x = 1520 + 54;
-    fare.y = 1150;
+    fare.y = 1405;
     fare.name = 'Rosa';
     game.job = {
       title: 'Cab Confidential',
@@ -121,7 +125,7 @@ function stageTaxi(game) {
     void hotel;
   }
   game.camera.x = cab.x + 30;
-  game.camera.y = cab.y + 110;
+  game.camera.y = cab.y + 60;
 }
 
 /** The title card over the marina at golden hour. */

@@ -114,7 +114,7 @@ function buildWorld(seed) {
   for (let i = 0; i < 7; i += 1) {
     const model = TRAFFIC_MODELS[Math.floor(rng() * TRAFFIC_MODELS.length)];
     const avenue = [640, 1080, 1520, 1960, 2400, 2840, 3280][Math.floor(rng() * 7)];
-    const car = makeCar(model, avenue + (rng() < 0.5 ? -34 : 34), 240 + rng() * (WORLD.height - 480), Math.PI / 2, model.paints[Math.floor(rng() * model.paints.length)], 'parked');
+    const car = makeCar(model, avenue + (rng() < 0.5 ? -57 : 57), 240 + rng() * (WORLD.height - 480), Math.PI / 2, model.paints[Math.floor(rng() * model.paints.length)], 'parked');
     car.driver = false;
     cars.push(car);
   }

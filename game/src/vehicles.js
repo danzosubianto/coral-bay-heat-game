@@ -185,23 +185,30 @@ export function updateTraffic(city, car, others, dt, rng) {
   const want = Math.atan2(aimY - car.y, aimX - car.x);
   const steer = clamp(angleDelta(car.angle, want) * 2.6, -1, 1);
 
-  // Keep off the car in front: same-ish heading, close ahead.
+  // Keep off the car in front: project every neighbour onto this car's
+  // heading — only what is truly ahead and truly in this lane counts, so a
+  // car parked on the pavement never stops the traffic rolling past it.
   let throttle = 0.82;
-  const aheadX = car.x + Math.cos(car.angle) * 58;
-  const aheadY = car.y + Math.sin(car.angle) * 58;
+  const hx = Math.cos(car.angle);
+  const hy = Math.sin(car.angle);
   for (const other of others) {
     if (other === car) continue;
-    if (distanceSq(aheadX, aheadY, other.x, other.y) < 34 * 34) {
+    const rx = other.x - car.x;
+    const ry = other.y - car.y;
+    const forward = rx * hx + ry * hy;
+    if (forward < 6 || forward > 84) continue;
+    const lateral = Math.abs(rx * -hy + ry * hx);
+    if (lateral < 27) {
       throttle = other.speed > car.speed + 8 ? 0.25 : 0;
       break;
     }
   }
   if (throttle === 0) car.blockedFor += dt;
   else car.blockedFor = 0;
-  if (car.blockedFor > 7) {
-    // Gridlock mercy: creep around the blockage.
-    throttle = 0.3;
-    car.blockedFor = 3;
+  if (car.blockedFor > 5) {
+    // Gridlock mercy: edge forward like a real driver until the way clears,
+    // instead of sitting in a frozen queue forever.
+    throttle = 0.35;
   }
   integrateCar(city, car, { throttle, steer, brake: throttle === 0 && car.speed > 4 }, dt);
 

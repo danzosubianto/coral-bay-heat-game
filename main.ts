@@ -32,8 +32,21 @@ function copyTree(from, to) {
   cpSync(from, to, { recursive: true });
 }
 
+// A hand-in that cannot be judged is worse than no hand-in: check the two
+// things the gate will check first, and fail loudly here instead.
+const gameDir = join(repoRoot, 'game');
+if (!existsSync(join(gameDir, 'index.html'))) {
+  throw new Error('game/index.html is missing: there is no game to hand in');
+}
+const shotNames = existsSync(join(repoRoot, 'screenshots'))
+  ? readdirSync(join(repoRoot, 'screenshots')).filter((n) => /\.(png|jpe?g)$/i.test(n))
+  : [];
+if (shotNames.length < 3 || shotNames.length > 4) {
+  throw new Error(`screenshots/ must hold 3 or 4 images, found ${shotNames.length}`);
+}
+
 mkdirSync(outputDir, { recursive: true });
-copyTree(join(repoRoot, 'game'), join(outputDir, 'game'));
+copyTree(gameDir, join(outputDir, 'game'));
 
 const shotsDir = join(outputDir, 'screenshots');
 mkdirSync(shotsDir, { recursive: true });

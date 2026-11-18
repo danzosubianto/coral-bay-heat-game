@@ -78,12 +78,12 @@ export function drawWorld(ctx, game, view) {
   // Parks: green insets.
   ctx.fillStyle = '#79a95c';
   for (const park of city.parks) {
-    if (park.x > x1 || park.x + park.w > x0 || park.y > y1 || park.y + park.h < y0) continue;
+    if (park.x > x1 || park.x + park.w < x0 || park.y > y1 || park.y + park.h < y0) continue;
     ctx.fillRect(park.x, park.y, park.w, park.h);
   }
   // Car parks: asphalt with bay lines.
   for (const lot of city.lots) {
-    if (lot.x > x1 || lot.x + lot.w > x0 || lot.y > y1 || lot.y + lot.h < y0) continue;
+    if (lot.x > x1 || lot.x + lot.w < x0 || lot.y > y1 || lot.y + lot.h < y0) continue;
     ctx.fillStyle = '#5a5e63';
     ctx.fillRect(lot.x, lot.y, lot.w, lot.h);
     ctx.strokeStyle = 'rgba(255,255,255,0.35)';
@@ -154,15 +154,19 @@ function drawRoads(ctx, x0, y0, x1, y1) {
 function drawBuildings(ctx, game, x0, y0, x1, y1) {
   const night = game.light.night;
   for (const b of game.city.buildings) {
-    if (b.x > x1 || b.x + b.w > x0 || b.y > y1 || b.y + b.h < y0) continue;
+    if (b.x > x1 || b.x + b.w < x0 || b.y > y1 || b.y + b.h < y0) continue;
     // Drop shadow from a low sun.
     ctx.fillStyle = 'rgba(30, 24, 16, 0.28)';
     ctx.fillRect(b.x + 12, b.y + 16, b.w, b.h);
-    // Walls, then a slightly inset roof.
+    // Walls, a slightly inset roof, and a drawn edge so the block reads as a
+    // building and not a slab of the ground it stands on.
     ctx.fillStyle = b.paint;
     ctx.fillRect(b.x, b.y, b.w, b.h);
     ctx.fillStyle = b.roof;
-    ctx.fillRect(b.x + 7, b.y + 7, b.w - 14, b.h - 14);
+    ctx.fillRect(b.x + 9, b.y + 9, b.w - 18, b.h - 18);
+    ctx.strokeStyle = 'rgba(43, 32, 22, 0.55)';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
     // Windows: a seeded grid; at night some of them glow.
     const rng = makeRng(b.seed);
     const cols = Math.max(2, Math.floor(b.w / 34));
@@ -170,14 +174,14 @@ function drawBuildings(ctx, game, x0, y0, x1, y1) {
     for (let cx = 0; cx < cols; cx += 1) {
       for (let ry = 0; ry < rows; ry += 1) {
         const lit = rng();
-        const wx = b.x + 12 + cx * ((b.w - 20) / cols);
-        const wy = b.y + 12 + ry * ((b.h - 20) / rows);
+        const wx = b.x + 13 + cx * ((b.w - 22) / cols);
+        const wy = b.y + 13 + ry * ((b.h - 22) / rows);
         if (night > 0.35 && lit < night * 0.55) {
           ctx.fillStyle = 'rgba(255, 214, 130, 0.95)';
         } else {
-          ctx.fillStyle = 'rgba(40, 60, 84, 0.5)';
+          ctx.fillStyle = 'rgba(30, 48, 70, 0.78)';
         }
-        ctx.fillRect(wx, wy, 11, 8);
+        ctx.fillRect(wx, wy, 12, 9);
       }
     }
   }
