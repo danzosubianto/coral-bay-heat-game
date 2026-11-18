@@ -85,7 +85,7 @@ export function updatePeds(city, peds, dt, rng) {
       if (ped.modeTime <= 0) ped.mode = 'walk';
       continue;
     }
-    if (ped.mode === 'hail') continue; // a fare, standing at the kerb waving
+    if (ped.mode === 'hail' || ped.mode === 'aboard') continue; // a fare: waiting, or riding
 
     // A stroll: follow the pavement, turn at crossings now and then.
     const speed = WALK_SPEED * ped.dir;
