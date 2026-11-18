@@ -1,5 +1,6 @@
-// Painting Coral Bay: the animated bay and its beach, the road grid with its
-// markings, the pastel blocks with their shadows and lit windows, palms,
+// Painting Coral Bay: the animated bay with its boats and gulls, the beach
+// with its boardwalk and umbrellas, the road grid with its markings, the
+// pastel blocks with their shadows, dressed roofs and lit windows, palms,
 // parks and the pier — and over everything, the light of the hour, from
 // mid-morning glare through a coral dusk to a blue night in which the
 // windows and headlamps come on. Entities (cars, people) are drawn by their
