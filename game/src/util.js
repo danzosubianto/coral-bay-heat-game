@@ -91,3 +91,12 @@ export function clockText(seconds) {
   const s = Math.max(0, Math.ceil(seconds));
   return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 }
+
+/** The day's hour (0..24) the way a person says it: 9:30 AM, 6:42 PM. */
+export function hourText(hour) {
+  const h24 = Math.floor(hour) % 24;
+  const mins = Math.floor((hour - Math.floor(hour)) * 60);
+  const suffix = h24 < 12 ? 'AM' : 'PM';
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${mins.toString().padStart(2, '0')} ${suffix}`;
+}

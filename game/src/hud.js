@@ -5,8 +5,8 @@
 // too, since it is information first and scenery second.
 
 import { WORLD, AVENUES_X, STREETS_Y } from './config.js';
-import { money, clockText, clamp } from './util.js';
-import { landmarkById } from './city.js';
+import { money, clockText, hourText, clamp } from './util.js';
+import { landmarkById, crossingName } from './city.js';
 
 function panel(ctx, x, y, w, h, alpha = 0.72) {
   ctx.fillStyle = `rgba(10, 16, 26, ${alpha})`;
@@ -205,13 +205,16 @@ function drawMinimap(ctx, game, view) {
   ctx.fill();
   ctx.restore();
   ctx.restore();
-  shadowText(ctx, 'CORAL BAY', x + w / 2, y + h + 18, { font: '700 10.5px system-ui, sans-serif', color: '#cfd8e3', align: 'center' });
+  shadowText(ctx, `CORAL BAY · ${hourText(game.hour)}`, x + w / 2, y + h + 18, { font: '700 10.5px system-ui, sans-serif', color: '#cfd8e3', align: 'center' });
 }
 
 function drawMissionPanel(ctx, game, view) {
   const job = game.job;
   const y = view.h - 96;
   panel(ctx, 16, y, 372, 80);
+  // A gold rule across the panel's top: the eye lands here first.
+  ctx.fillStyle = '#ffd94d';
+  ctx.fillRect(26, y + 7, 352, 3);
   if (job) {
     shadowText(ctx, job.title.toUpperCase(), 30, y + 24, { font: '800 13px system-ui, sans-serif', color: '#ffd94d' });
     shadowText(ctx, job.objective, 30, y + 47, { font: '600 14.5px system-ui, sans-serif' });
@@ -250,8 +253,9 @@ function drawContextPanel(ctx, game, view) {
   } else if (game.prompt) {
     shadowText(ctx, game.prompt, x + w / 2, y + 47, { font: '700 14.5px system-ui, sans-serif', color: '#ffd94d', align: 'center' });
   } else {
-    shadowText(ctx, 'WASD move · Shift sprint', x + w / 2, y + 32, { font: '600 12.5px system-ui, sans-serif', color: '#cfd8e3', align: 'center' });
-    shadowText(ctx, 'E enter car · F mug · mouse aims the pistol', x + w / 2, y + 52, { font: '600 12.5px system-ui, sans-serif', color: '#cfd8e3', align: 'center' });
+    shadowText(ctx, crossingName(game.player.x, game.player.y), x + w / 2, y + 26, { font: '700 12px system-ui, sans-serif', color: '#ffd94d', align: 'center' });
+    shadowText(ctx, 'WASD move · Shift sprint', x + w / 2, y + 44, { font: '600 12.5px system-ui, sans-serif', color: '#cfd8e3', align: 'center' });
+    shadowText(ctx, 'E enter car · F mug · mouse aims the pistol', x + w / 2, y + 62, { font: '600 12.5px system-ui, sans-serif', color: '#cfd8e3', align: 'center' });
   }
 }
 
