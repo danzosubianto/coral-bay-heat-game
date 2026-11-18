@@ -116,6 +116,7 @@ export function integrateCar(city, car, input, dt) {
   }
   const target = input.throttle >= 0 ? m.topSpeed : -m.topSpeed * 0.42;
   const rate = input.throttle !== 0 ? m.accel : m.accel * 0.7;
+  car.braking = !!input.brake && Math.abs(car.speed) > 6;
   if (input.brake) {
     car.speed -= Math.sign(car.speed) * 420 * dt;
     if (Math.abs(car.speed) < 12) car.speed = 0;
@@ -283,6 +284,12 @@ export function drawCar(ctx, car, time) {
   ctx.fillStyle = car.wrecked ? '#3a3a3e' : car.paint;
   roundRect(ctx, -L / 2, -W / 2, L, W, 8);
   ctx.fill();
+  if (!car.wrecked) {
+    // Sun sheen down the flank, so the paint reads as metal, not card.
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    roundRect(ctx, -L / 2 + 3, -W / 2 + 3, L - 6, W * 0.3, 6);
+    ctx.fill();
+  }
   if (car.kind === 'cruiser') {
     ctx.fillStyle = '#e8ecf1';
     ctx.fillRect(-L * 0.08, -W / 2, L * 0.3, W);
@@ -303,15 +310,22 @@ export function drawCar(ctx, car, time) {
   ctx.fillStyle = car.wrecked ? '#2c2c30' : car.paint;
   roundRect(ctx, -L * 0.13, -W * 0.30, L * 0.24, W * 0.6, 4);
   ctx.fill();
-  // Lights: pale lamps front, red rear.
+  // Lights: pale lamps front, red rear — the rears flare under braking.
   ctx.fillStyle = '#fff6c9';
   ctx.fillRect(L / 2 - 3, -W * 0.34, 3, 6);
   ctx.fillRect(L / 2 - 3, W * 0.34 - 6, 3, 6);
-  ctx.fillStyle = '#d23b3b';
-  ctx.fillRect(-L / 2, -W * 0.34, 3, 6);
-  ctx.fillRect(-L / 2, W * 0.34 - 6, 3, 6);
+  ctx.fillStyle = car.braking ? '#ff5a4e' : '#d23b3b';
+  ctx.fillRect(-L / 2, -W * 0.34, car.braking ? 5 : 3, 6);
+  ctx.fillRect(-L / 2, W * 0.34 - 6, car.braking ? 5 : 3, 6);
   if (car.kind === 'cruiser') {
     const phase = Math.floor(time * 5) % 2 === 0;
+    // The light bar throws its colour onto the roof and the road.
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = phase ? '#ff4040' : '#4060ff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, L * 0.52, W * 0.95, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
     ctx.fillStyle = phase ? '#ff4040' : '#4060ff';
     ctx.fillRect(-6, -W * 0.3, 12, 6);
     ctx.fillStyle = phase ? '#4060ff' : '#ff4040';
