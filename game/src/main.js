@@ -204,11 +204,11 @@ game.spawnFleeingDriver = (car) => {
   ped.fleeX = car.x;
   ped.fleeY = car.y;
 };
-game.nearestWaitingPed = () => {
+game.nearestWaitingPed = (exclude = null) => {
   let best = null;
   let bestD = Infinity;
   for (const ped of game.peds) {
-    if (ped.mode !== 'walk') continue;
+    if (ped.mode !== 'walk' || ped === exclude) continue;
     const d = Math.hypot(ped.x - game.player.x, ped.y - game.player.y);
     if (d < bestD) { bestD = d; best = ped; }
   }
@@ -458,10 +458,13 @@ function step(dt) {
   }
   carPedContact(dt);
 
-  // Getting in and out of cars, and taking work from Marlin.
+  // Getting in and out of cars, and taking work from Marlin. One press, one
+  // action, in the order the prompt on screen suggests.
   game.prompt = '';
+  const atGarage = Math.hypot(game.player.x - garage.x, game.player.y - garage.y) < 64;
   if (input.pressed('KeyE')) {
     if (game.player.car) exitCar(game);
+    else if (!game.job && atGarage) game.startJob();
     else {
       const car = carInReach(game.player, game.cars);
       if (car) enterCar(game, car);
@@ -469,11 +472,10 @@ function step(dt) {
   }
   if (!game.player.car) {
     const car = carInReach(game.player, game.cars);
-    if (car) game.prompt = `E — drive the ${car.model.name}`;
+    if (car && (game.job || !atGarage)) game.prompt = `E — drive the ${car.model.name}`;
   }
-  if (!game.job && Math.hypot(game.player.x - garage.x, game.player.y - garage.y) < 64) {
+  if (!game.job && atGarage && !game.player.car) {
     game.prompt = 'E — talk to Marlin (new job)';
-    if (input.pressed('KeyE')) game.startJob();
   }
 
   // The job itself.

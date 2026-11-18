@@ -144,8 +144,8 @@ function jobCabConfidential(game) {
   let farePed = null;
   let fareDest = null;
   let fareTime = 0;
-  const newFare = (g) => {
-    farePed = g.nearestWaitingPed();
+  const newFare = (g, exclude = null) => {
+    farePed = g.nearestWaitingPed(exclude);
     if (!farePed) return;
     farePed.mode = 'hail';
     job.marker = { x: farePed.x, y: farePed.y, label: `Pick up ${farePed.name}` };
@@ -180,14 +180,15 @@ function jobCabConfidential(game) {
       const fare = 180 + Math.round(Math.hypot(fareDest.x - farePed.x, fareDest.y - farePed.y) / 12);
       const tip = fareTime < 100 ? 60 : 0;
       g.earn(fare + tip, tip ? `Fare paid ${money(fare)} + ${money(tip)} tip` : `Fare paid ${money(fare)}`);
-      farePed.mode = 'walk';
-      farePed.x = fareDest.x + 16;
-      farePed.y = fareDest.y + 10;
+      const dropped = farePed;
+      dropped.mode = 'walk';
+      dropped.x = fareDest.x + 16;
+      dropped.y = fareDest.y + 10;
       farePed = null;
       job.faresDone += 1;
       if (job.faresDone >= job.faresTotal) return 'done';
       job.objective = 'Next fare — watch the kerbs';
-      newFare(g);
+      newFare(g, dropped);
     }
     return null;
   };
@@ -206,13 +207,15 @@ function jobWreckingCrew(game) {
   const paints = ['#386641', '#2a9d8f', '#606c38', '#588157', '#3a5a40'];
   for (let i = 0; i < 5; i += 1) {
     const model = i % 2 ? VOYAGER : DARTER;
-    const car = makeCar(model, den.x - 130 + i * 64, den.y - 150 + (i % 2) * 56, Math.PI / 3 + i, paints[i], 'rival');
+    // Parked nose-to-tail along Sundial St in front of the den, where a car
+    // can actually reach them — a crew showing off its rides on the street.
+    const car = makeCar(model, den.x - 190 + i * 78, 1896 + (i % 2) * 52, i % 2 ? 0.06 : -0.04, paints[i], 'rival');
     car.driver = false;
     car.jobOwned = true;
     game.cars.push(car);
     job.targets.push(car);
   }
-  job.marker = { x: den.x, y: den.y - 130, label: 'Wreck the Viper rides' };
+  job.marker = { x: den.x, y: 1920, label: 'Wreck the Viper rides' };
   job.objective = 'Wreck the Viper rides (0 of 5)';
   job.update = (g) => {
     const done = job.targets.filter((c) => c.wrecked).length;

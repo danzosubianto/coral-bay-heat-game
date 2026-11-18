@@ -77,6 +77,19 @@ function setRoadblock(city, police, cars, player, rng) {
   police.blockCooldown = 26;
 }
 
+/** Is the straight drive from A to B walled off by a building? */
+function segmentBlocked(city, x1, y1, x2, y2) {
+  const steps = Math.max(2, Math.floor(Math.hypot(x2 - x1, y2 - y1) / 42));
+  for (let i = 1; i < steps; i += 1) {
+    const x = x1 + ((x2 - x1) * i) / steps;
+    const y = y1 + ((y2 - y1) * i) / steps;
+    for (const b of city.buildings) {
+      if (x > b.x - 16 && x < b.x + b.w + 16 && y > b.y - 16 && y < b.y + b.h + 16) return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Advance the whole police response. `foe` is whoever is being hunted:
  * {x, y, angle, speed, onFoot}. Returns true the moment the bust lands.
@@ -113,11 +126,33 @@ export function updatePolice(city, police, cars, foe, dt, rng) {
   police.cruisers.forEach((cruiser, i) => {
     if (cruiser.roadblock || cruiser.wrecked) return;
     const lead = 0.45;
-    const tx = foe.x + Math.cos(foe.angle ?? 0) * (foe.speed ?? 0) * lead + (i % 2 ? 26 : -26);
-    const ty = foe.y + Math.sin(foe.angle ?? 0) * (foe.speed ?? 0) * lead + (i % 3 === 0 ? 20 : -14);
+    let tx = foe.x + Math.cos(foe.angle ?? 0) * (foe.speed ?? 0) * lead + (i % 2 ? 26 : -26);
+    let ty = foe.y + Math.sin(foe.angle ?? 0) * (foe.speed ?? 0) * lead + (i % 3 === 0 ? 20 : -14);
+    const dist = Math.hypot(foe.x - cruiser.x, foe.y - cruiser.y);
+    // Buildings are not a suggestion to a determined officer, but they are
+    // solid: when the straight line is walled off, route via the crossing
+    // nearest the foe and come down their street instead.
+    if (dist > 240 && segmentBlocked(city, cruiser.x, cruiser.y, foe.x, foe.y)) {
+      const near = nearestCrossing(foe.x, foe.y);
+      tx = AVENUES_X[near.ai];
+      ty = STREETS_Y[near.si];
+    }
+    // Stuck on a wall too long? Radio in a re-route: rejoin at the nearest
+    // crossing and come again. The hunt should never die against a building.
+    if (Math.abs(cruiser.speed) < 14 && dist > 200) {
+      cruiser.stuckT = (cruiser.stuckT ?? 0) + dt;
+      if (cruiser.stuckT > 2.5) {
+        const near = nearestCrossing(cruiser.x, cruiser.y);
+        cruiser.x = AVENUES_X[near.ai];
+        cruiser.y = STREETS_Y[near.si];
+        cruiser.speed = 120;
+        cruiser.stuckT = 0;
+      }
+    } else {
+      cruiser.stuckT = 0;
+    }
     const want = Math.atan2(ty - cruiser.y, tx - cruiser.x);
     const steer = clamp(angleDelta(cruiser.angle, want) * 2.4, -1, 1);
-    const dist = Math.hypot(foe.x - cruiser.x, foe.y - cruiser.y);
     nearest = Math.min(nearest, dist);
     const throttle = dist > 26 ? 1 : 0.2;
     integrateCar(city, cruiser, { throttle, steer, brake: false }, dt);
